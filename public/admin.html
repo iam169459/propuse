@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Responses Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+      color: #333;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5rem;
+      text-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 20px;
+      padding: 25px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .stat-card.yes { border-top: 5px solid #ff6b9d; }
+    .stat-card.maybe { border-top: 5px solid #f9ca24; }
+    .stat-card.total { border-top: 5px solid #a29bfe; }
+    .stat-number { font-size: 2.5rem; font-weight: 600; margin-bottom: 5px; }
+    .stat-card.yes .stat-number { color: #ff6b9d; }
+    .stat-card.maybe .stat-number { color: #f9ca24; }
+    .stat-card.total .stat-number { color: #a29bfe; }
+    .stat-label { color: #666; font-size: 1rem; }
+    .responses-list {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .responses-list h2 { margin-bottom: 20px; color: #333; }
+    .response-item {
+      padding: 20px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .response-item:hover { background: #f9f9f9; }
+    .response-item:last-child { border-bottom: none; }
+    .response-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .response-badge {
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    .badge-yes { background: #ff6b9d; color: white; }
+    .badge-maybe { background: #f9ca24; color: #333; }
+    .badge-click { background: #a29bfe; color: white; }
+    .response-time { color: #999; font-size: 0.85rem; }
+    .response-details {
+      display: none;
+      margin-top: 15px;
+      padding: 15px;
+      background: #f5f5f5;
+      border-radius: 10px;
+      font-size: 0.9rem;
+    }
+    .response-details.show { display: block; }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { color: #666; font-weight: 500; }
+    .detail-value { color: #333; text-align: right; max-width: 60%; word-break: break-all; }
+    .no-responses { text-align: center; color: #999; padding: 40px; }
+    .refresh-btn {
+      display: block;
+      margin: 20px auto 0;
+      padding: 12px 30px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .refresh-btn:hover { background: #5a6fd6; }
+    @media (max-width: 700px) {
+      .stats { grid-template-columns: 1fr; }
+      .detail-row { flex-direction: column; }
+      .detail-value { text-align: left; max-width: 100%; margin-top: 5px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Response Dashboard</h1>
+    
+    <div class="stats">
+      <div class="stat-card yes">
+        <div class="stat-number" id="yesCount">0</div>
+        <div class="stat-label">Yes Responses</div>
+      </div>
+      <div class="stat-card maybe">
+        <div class="stat-number" id="maybeCount">0</div>
+        <div class="stat-label">Thinking Responses</div>
+      </div>
+      <div class="stat-card total">
+        <div class="stat-number" id="totalCount">0</div>
+        <div class="stat-label">Total Interactions</div>
+      </div>
+    </div>
+
+    <div class="responses-list">
+      <h2>All Responses</h2>
+      <div id="responsesList">
+        <div class="no-responses">No responses yet...</div>
+      </div>
+      <button class="refresh-btn" onclick="loadResponses()">Refresh</button>
+    </div>
+  </div>
+
+  <script>
+    async function loadResponses() {
+      try {
+        const res = await fetch('/api/responses');
+        const data = await res.json();
+        
+        let yesCount = 0;
+        let maybeCount = 0;
+        
+        data.responses.forEach(r => {
+          if (r.answer === 'yes') yesCount++;
+          else if (r.answer === 'maybe') maybeCount++;
+        });
+        
+        document.getElementById('yesCount').textContent = yesCount;
+        document.getElementById('maybeCount').textContent = maybeCount;
+        document.getElementById('totalCount').textContent = data.responses.length;
+        
+        const list = document.getElementById('responsesList');
+        
+        if (data.responses.length === 0) {
+          list.innerHTML = '<div class="no-responses">No responses yet...</div>';
+          return;
+        }
+        
+        list.innerHTML = data.responses.reverse().map((r, i) => {
+          let badgeClass = 'badge-click';
+          let badgeText = 'Clicked';
+          if (r.answer === 'yes') { badgeClass = 'badge-yes'; badgeText = 'Yes!'; }
+          else if (r.answer === 'maybe') { badgeClass = 'badge-maybe'; badgeText = 'Thinking...'; }
+          else if (r.answer === 'yes_click') { badgeClass = 'badge-click'; badgeText = 'Clicked Yes'; }
+          
+          let details = '';
+          if (r.webData) {
+            details = `
+              <div class="response-details" id="details-${i}">
+                <div class="detail-row"><span class="detail-label">Device:</span><span class="detail-value">${getDevice(r.webData.userAgent)}</span></div>
+                <div class="detail-row"><span class="detail-label">Browser:</span><span class="detail-value">${getBrowser(r.webData.userAgent)}</span></div>
+                <div class="detail-row"><span class="detail-label">Screen:</span><span class="detail-value">${r.webData.screenWidth}x${r.webData.screenHeight}</span></div>
+                <div class="detail-row"><span class="detail-label">Language:</span><span class="detail-value">${r.webData.language}</span></div>
+                <div class="detail-row"><span class="detail-label">Timezone:</span><span class="detail-value">${r.webData.timezone}</span></div>
+                <div class="detail-row"><span class="detail-label">Referrer:</span><span class="detail-value">${r.webData.referrer || 'Direct visit'}</span></div>
+                ${r.location ? `
+                <div class="detail-row"><span class="detail-label">Location:</span><span class="detail-value">${r.location.city}, ${r.location.country}</span></div>
+                ` : ''}
+              </div>
+            `;
+          }
+          
+          return `
+            <div class="response-item" onclick="toggleDetails(${i})">
+              <div class="response-header">
+                <span class="response-badge ${badgeClass}">${badgeText}</span>
+                <span class="response-time">${new Date(r.timestamp).toLocaleString()}</span>
+              </div>
+              ${details}
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        console.error('Error loading responses:', e);
+      }
+    }
+    
+    function toggleDetails(i) {
+      const el = document.getElementById('details-' + i);
+      if (el) el.classList.toggle('show');
+    }
+    
+    function getDevice(ua) {
+      if (/Mobi|Android/i.test(ua)) return 'Mobile';
+      if (/Tablet|iPad/i.test(ua)) return 'Tablet';
+      return 'Desktop';
+    }
+    
+    function getBrowser(ua) {
+      if (ua.includes('Chrome')) return 'Chrome';
+      if (ua.includes('Firefox')) return 'Firefox';
+      if (ua.includes('Safari')) return 'Safari';
+      if (ua.includes('Edge')) return 'Edge';
+      return 'Other';
+    }
+    
+    loadResponses();
+    setInterval(loadResponses, 5000);
+  </script>
+</body>
+</html>
